@@ -486,8 +486,11 @@ int main()
 		else if (t < 60)
 			printw("| Stage %d | Time %3d | Boss Detected |", 4, t);
 		else
+		{
+			pthread_mutex_unlock(&mutex);
+			crash_flag=1;
 			 break;
-
+		}
 		refresh();
 		pthread_mutex_unlock(&mutex);
 
