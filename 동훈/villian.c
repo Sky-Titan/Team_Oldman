@@ -6,6 +6,13 @@
 #include <ncurses.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <termios.h>
+
+#define START_X 0
+#define START_Y 0
+
+static struct termios initial_settings, new_settings;
+static int peek_character = -1;
 
 struct villian
 { // f구조체
@@ -27,7 +34,23 @@ void draw_villians(vil *vils);
 
 void *p1_function(void *data);
 
+void *p2_function();
+
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER; // 쓰레드 초기화
+
+void init_keyboard();
+
+void close_keyboard();
+
+void finish_loop();
+
+int _kbhit();
+
+int _getch();
+
+int _putch();
+
+void move_man();
 
 //game window LeftUp(12,1)~RightLow(LINE-2,COLS-2)
 
@@ -47,7 +70,7 @@ void draw_villians(vil *vils)
 			vils[i].orientation = 1; // 오른쪽으로 이동
 		else if (flag == 1)
 			vils[i].orientation = -1; // 왼쪽으로 이동
-		
+
 		// pthread_mutex_lock(&mutex);
 		mvprintw(vils[i].x, vils[i].y, "F");
 		// pthread_mutex_unlock(&mutex);
@@ -81,9 +104,10 @@ void *p1_function(void *data)
 
 	while (1)
 	{
-		if(t<6){
+		if (t < 6)
+		{
 			while (!draw_flag)
-			{	
+			{
 				pthread_mutex_lock(&mutex);
 				draw_villians(vils);
 				pthread_mutex_unlock(&mutex);
@@ -94,49 +118,203 @@ void *p1_function(void *data)
 			pthread_mutex_unlock(&mutex);
 			usleep(80000);
 		}
-		else if(t<18)
+		else if (t < 18)
 		{
-			while(!draw_flag)
+			while (!draw_flag)
 			{
 				pthread_mutex_lock(&mutex);
 				draw_villians(vils);
-                                pthread_mutex_unlock(&mutex);
-                                draw_flag = 1;
-                        }
-                        pthread_mutex_lock(&mutex);
-                        move_villians(vils);
-                        pthread_mutex_unlock(&mutex);
-                        usleep(40000);
+				pthread_mutex_unlock(&mutex);
+				draw_flag = 1;
+			}
+			pthread_mutex_lock(&mutex);
+			move_villians(vils);
+			pthread_mutex_unlock(&mutex);
+			usleep(40000);
 		}
-		else if(t<36)
+		else if (t < 36)
 		{
-			while(!draw_flag)
-                        {
-                                pthread_mutex_lock(&mutex);
-                                draw_villians(vils);
-                                pthread_mutex_unlock(&mutex);
-                                draw_flag = 1;
-                        }
-                        pthread_mutex_lock(&mutex);
-                        move_villians(vils);
-                        pthread_mutex_unlock(&mutex);
-                        usleep(20000);
+			while (!draw_flag)
+			{
+				pthread_mutex_lock(&mutex);
+				draw_villians(vils);
+				pthread_mutex_unlock(&mutex);
+				draw_flag = 1;
+			}
+			pthread_mutex_lock(&mutex);
+			move_villians(vils);
+			pthread_mutex_unlock(&mutex);
+			usleep(20000);
 		}
-		else if(t<60)
+		else if (t < 60)
 		{
-		 	while(!draw_flag)
-                        {
-                                pthread_mutex_lock(&mutex);
-                                draw_villians(vils);
-                                pthread_mutex_unlock(&mutex);
-                                draw_flag = 1;
-                        }
-                        pthread_mutex_lock(&mutex);
-                        move_villians(vils);
-                        pthread_mutex_unlock(&mutex);
-                        usleep(10000);
+			while (!draw_flag)
+			{
+				pthread_mutex_lock(&mutex);
+				draw_villians(vils);
+				pthread_mutex_unlock(&mutex);
+				draw_flag = 1;
+			}
+			pthread_mutex_lock(&mutex);
+			move_villians(vils);
+			pthread_mutex_unlock(&mutex);
+			usleep(10000);
 		}
 	}
+}
+
+void *p2_function()
+{
+	move_man();
+}
+
+void init_keyboard()
+{
+
+	tcgetattr(0, &initial_settings);
+	new_settings = initial_settings;
+	new_settings.c_lflag &= ~ICANON;
+	new_settings.c_lflag &= ~ECHO;
+	new_settings.c_cc[VMIN] = 1;
+	new_settings.c_cc[VTIME] = 0;
+	tcsetattr(0, TCSANOW, &new_settings);
+}
+
+void close_keyboard()
+{
+
+	tcsetattr(0, TCSANOW, &initial_settings);
+}
+
+void finish_loop()
+{
+	// endwin();
+	close_keyboard();
+	// exit(0);
+}
+
+int _getch()
+{
+
+	char ch;
+
+	if (peek_character != -1)
+	{
+
+		ch = peek_character;
+		peek_character = -1;
+		return ch;
+	}
+
+	read(0, &ch, 1);
+	return ch;
+}
+int _putch(int c)
+{
+
+	putchar(c);
+	fflush(stdout);
+	return c;
+}
+
+int _kbhit()
+{
+
+	unsigned char ch;
+	int nread;
+
+	if (peek_character != -1)
+		return 1;
+
+	new_settings.c_cc[VMIN] = 0;
+	tcsetattr(0, TCSANOW, &new_settings);
+	nread = read(0, &ch, 1);
+	new_settings.c_cc[VMIN] = 1;
+	tcsetattr(0, TCSANOW, &new_settings);
+
+	if (nread == 1)
+	{
+		peek_character = ch;
+		return 1;
+	}
+
+	return 0;
+}
+
+int x = START_X; //student's x position
+int y = START_Y; //student's y position
+
+void move_man() //call this function when create and move student
+{
+	int x_prev = x, y_prev = y;
+	int ch, i = 0;
+	init_keyboard();
+
+	// initscr();
+	// clear();
+
+	x = 12;
+	y = 1;
+	signal(SIGINT, finish_loop);
+	pthread_mutex_lock(&mutex);
+	move(x, y);
+	addstr("O");
+		pthread_mutex_unlock(&mutex);
+	while (1)
+	{
+			pthread_mutex_lock(&mutex);
+		move(x, y);
+		addstr("O");
+		if (_kbhit())
+		{
+
+			ch = _getch();
+
+			//_putch(ch);
+
+			switch (ch)
+			{
+
+			case 'w': //up
+				if (x != 12)
+				{
+					y_prev = y;
+					x_prev = x;
+					x--;
+				}
+				break;
+			case 's': //down
+				if(x != LINES-2)
+				{
+					y_prev = y;
+					x_prev = x;
+					x++;
+				}
+				break;
+			case 'a': //left
+				if (y != 1)
+				{
+					x_prev = x;
+					y_prev = y;
+					y--;
+				}
+				break;
+			case 'd': //right
+				if(y!=COLS-2)
+				{	x_prev = x;
+					y_prev = y;
+					y++;
+				}
+				break;
+			}
+		}
+		refresh();
+		move(x_prev, y_prev);
+		addstr(" ");
+				pthread_mutex_unlock(&mutex);
+	}
+	// endwin();
+	close_keyboard();
 }
 
 int main()
@@ -207,33 +385,42 @@ int main()
 
 	thr_id[0] = pthread_create(&p_thread[0], NULL, p1_function, (void *)&vils);
 
-	if(thr_id[0] < 0)
+	if (thr_id[0] < 0)
 	{
 		perror("thread create error : ");
 		exit(0);
 	}
 
-	while(1)
+	 thr_id[1] = pthread_create(&p_thread[1], NULL, p2_function, NULL);
+
+	if (thr_id[1] < 0)
+	{
+		perror("thread create error : ");
+		exit(0);
+	}
+
+	while (1)
 	{
 		pthread_mutex_lock(&mutex);
 		move(7, 5);
-		if(t<5)	
+		if (t < 5)
 			printw("| Stage %d | Time %3d |", 1, t);
 		else if (t < 6)
-		 	printw("| Stage %d | Time %3d | Boss Detected |", 1, t);
+			printw("| Stage %d | Time %3d | Boss Detected |", 1, t);
 		else if (t < 16)
-		 	printw("| Stage %d | Time %3d |                    ", 2, t);
+			printw("| Stage %d | Time %3d |                    ", 2, t);
 		else if (t < 18)
-		 	printw("| Stage %d | Time %3d | Boss Detected |", 2, t);
+			printw("| Stage %d | Time %3d | Boss Detected |", 2, t);
 		else if (t < 33)
-		 	printw("| Stage %d | Time %3d |                    ", 3, t);
+			printw("| Stage %d | Time %3d |                    ", 3, t);
 		else if (t < 36)
-		 	printw("| Stage %d | Time %3d | Boss Detected |", 3, t);
+			printw("| Stage %d | Time %3d | Boss Detected |", 3, t);
 		else if (t < 56)
-		 	printw("| Stage %d | Time %3d |                    ", 4, t);
+			printw("| Stage %d | Time %3d |                    ", 4, t);
 		else if (t < 60)
-		 	printw("| Stage %d | Time %3d | Boss Detected |", 4, t);
-		else break;
+			printw("| Stage %d | Time %3d | Boss Detected |", 4, t);
+		else
+			break;
 		refresh();
 		pthread_mutex_unlock(&mutex);
 		f = clock();
