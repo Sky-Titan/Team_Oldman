@@ -19,7 +19,7 @@ clock_t s, f; // 시간잼수
 
 int t = 0, draw_flag = 0;
 
-#define vil_num LINES - 13 // "F" 개수
+#define vil_num LINES - 13 // Villian 개수
 
 void move_villians(vil *vils);
 
@@ -79,18 +79,63 @@ void *p1_function(void *data)
 	vil *vils;
 	vils = ((vil *)data); // F 구조체배열 받아오기
 
-	while (t < 50)
+	while (1)
 	{
-		while (!draw_flag)
-		{	pthread_mutex_lock(&mutex);
-			draw_villians(vils);
+		if(t<6){
+			while (!draw_flag)
+			{	
+				pthread_mutex_lock(&mutex);
+				draw_villians(vils);
+				pthread_mutex_unlock(&mutex);
+				draw_flag = 1;
+			}
+			pthread_mutex_lock(&mutex);
+			move_villians(vils);
 			pthread_mutex_unlock(&mutex);
-			draw_flag = 1;
+			usleep(80000);
 		}
-		pthread_mutex_lock(&mutex);
-		move_villians(vils);
-		pthread_mutex_unlock(&mutex);
-		sleep(1);
+		else if(t<18)
+		{
+			while(!draw_flag)
+			{
+				pthread_mutex_lock(&mutex);
+				draw_villians(vils);
+                                pthread_mutex_unlock(&mutex);
+                                draw_flag = 1;
+                        }
+                        pthread_mutex_lock(&mutex);
+                        move_villians(vils);
+                        pthread_mutex_unlock(&mutex);
+                        usleep(40000);
+		}
+		else if(t<36)
+		{
+			while(!draw_flag)
+                        {
+                                pthread_mutex_lock(&mutex);
+                                draw_villians(vils);
+                                pthread_mutex_unlock(&mutex);
+                                draw_flag = 1;
+                        }
+                        pthread_mutex_lock(&mutex);
+                        move_villians(vils);
+                        pthread_mutex_unlock(&mutex);
+                        usleep(20000);
+		}
+		else if(t<60)
+		{
+		 	while(!draw_flag)
+                        {
+                                pthread_mutex_lock(&mutex);
+                                draw_villians(vils);
+                                pthread_mutex_unlock(&mutex);
+                                draw_flag = 1;
+                        }
+                        pthread_mutex_lock(&mutex);
+                        move_villians(vils);
+                        pthread_mutex_unlock(&mutex);
+                        usleep(10000);
+		}
 	}
 }
 
@@ -168,59 +213,41 @@ int main()
 		exit(0);
 	}
 
-	while (t < 50)
+	while(1)
 	{
 		pthread_mutex_lock(&mutex);
 		move(7, 5);
-		printw("| Stage %d | Time %3d |", level[0], t);
+		if(t<5)	
+			printw("| Stage %d | Time %3d |", 1, t);
+		else if (t < 6)
+		 	printw("| Stage %d | Time %3d | Boss Detected |", 1, t);
+		else if (t < 16)
+		 	printw("| Stage %d | Time %3d |                    ", 2, t);
+		else if (t < 18)
+		 	printw("| Stage %d | Time %3d | Boss Detected |", 2, t);
+		else if (t < 33)
+		 	printw("| Stage %d | Time %3d |                    ", 3, t);
+		else if (t < 36)
+		 	printw("| Stage %d | Time %3d | Boss Detected |", 3, t);
+		else if (t < 56)
+		 	printw("| Stage %d | Time %3d |                    ", 4, t);
+		else if (t < 60)
+		 	printw("| Stage %d | Time %3d | Boss Detected |", 4, t);
+		else break;
 		refresh();
 		pthread_mutex_unlock(&mutex);
 		f = clock();
 		t = (int)(f - s) / 1000000;
 	}
-	pthread_join(p_thread[0], (void **)&status);
-
-
-	// while (t >= 50 && t < 60)
-	// {
-	// 	pthread_mutex_lock(&mutex);
-	// 	move(7, 5);
-	// 	printw("| Stage %d | Time %3d |", level[0], t);
-	// 	refresh();
-	// 	pthread_mutex_unlock(&mutex);
-	// 	f = clock();
-	// 	t = (int)(f - s) / 1000000;
-	// }
-	// pthread_join(p_thread[0], (void **)&status);
-
-	// else if (t < 60)
-	// 	printw("| Stage %d | Time %3d | Boss Detected |", level[1], t);
-	// else if (t < 160)
-	// 	printw("| Stage %d | Time %3d |                    ", 2, t);
-	// else if (t < 180)
-	// 	printw("| Stage %d | Time %3d | Boss Detected |", level[2], t);
-	// else if (t < 330)
-	// 	printw("| Stage %d | Time %3d |                    ", 3, t);
-	// else if (t < 360)
-	// 	printw("| Stage %d | Time %3d | Boss Detected |", level[3], t);
-	// else if (t < 560)
-	// 	printw("| Stage %d | Time %3d |                    ", 4, t);
-	// else if (t < 600)
-	// 	printw("| Stage %d | Time %3d | Boss Detected |", level[4], t);
-	// else break;
-	// refresh();
-	// f = clock();
-	// t = (int)(f - s) / 1000000;
-	// }
 	//result print
 	move(9, 5);
-	if (t < 60)
+	if (t < 6)
 		printw("You got F grade, time : %d", t);
-	else if (t < 180)
+	else if (t < 18)
 		printw("You got D grade, time : %d", t);
-	else if (t < 360)
+	else if (t < 36)
 		printw("You got C grade, time : %d", t);
-	else if (t < 600)
+	else if (t < 60)
 		printw("You got B grade, time : %d", t);
 	else
 		printw("You got A grade, Congratulations");
