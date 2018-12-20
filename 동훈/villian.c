@@ -126,7 +126,7 @@ void *p1_function(void *data)
 			pthread_mutex_lock(&mutex);
 			move_villians(vils);
 			pthread_mutex_unlock(&mutex);
-			usleep(80000);
+			usleep(20000);
 		}
 		else if (t < 18)
 		{
@@ -140,7 +140,7 @@ void *p1_function(void *data)
 			pthread_mutex_lock(&mutex);
 			move_villians(vils);
 			pthread_mutex_unlock(&mutex);
-			usleep(40000);
+			usleep(10000);
 		}
 		else if (t < 36)
 		{
@@ -154,7 +154,7 @@ void *p1_function(void *data)
 			pthread_mutex_lock(&mutex);
 			move_villians(vils);
 			pthread_mutex_unlock(&mutex);
-			usleep(20000);
+			usleep(5000);
 		}
 		else if (t < 60)
 		{
@@ -168,7 +168,7 @@ void *p1_function(void *data)
 			pthread_mutex_lock(&mutex);
 			move_villians(vils);
 			pthread_mutex_unlock(&mutex);
-			usleep(10000);
+			usleep(2500);
 		}
 	}
 }
@@ -429,7 +429,7 @@ int main()
 		addch('|');
 	}
 	move(2, 5);
-	addstr("Grade Theft Auto");
+	addstr("Grade Theft A");
 	move(4, 5);
 	addstr("This game is to get A grade while avoiding F grades");
 	refresh();
@@ -469,22 +469,14 @@ int main()
 		break;
 		pthread_mutex_lock(&mutex);
 		move(7, 5);
-		if (t < 5)
+		if (t < 6)
 			printw("| Stage %d | Time %3d |", 1, t);
-		else if (t < 6)
-			printw("| Stage %d | Time %3d | Boss Detected |", 1, t);
-		else if (t < 16)
-			printw("| Stage %d | Time %3d |                    ", 2, t);
 		else if (t < 18)
-			printw("| Stage %d | Time %3d | Boss Detected |", 2, t);
-		else if (t < 33)
-			printw("| Stage %d | Time %3d |                    ", 3, t);
+			printw("| Stage %d | Time %3d | Speed X 2 |", 2, t);
 		else if (t < 36)
-			printw("| Stage %d | Time %3d | Boss Detected |", 3, t);
-		else if (t < 56)
-			printw("| Stage %d | Time %3d |                    ", 4, t);
+			printw("| Stage %d | Time %3d | Speed X 2 |", 3, t);
 		else if (t < 60)
-			printw("| Stage %d | Time %3d | Boss Detected |", 4, t);
+			printw("| Stage %d | Time %3d | Speed X 2 |", 4, t);
 		else
 		{
 			pthread_mutex_unlock(&mutex);
