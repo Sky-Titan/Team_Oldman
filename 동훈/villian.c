@@ -52,6 +52,13 @@ int _putch();
 
 void move_man();
 
+void game_end();
+
+// void *crash();
+void crash();
+
+int crash_flag=0;//충돌했는지
+
 //game window LeftUp(12,1)~RightLow(LINE-2,COLS-2)
 
 void draw_villians(vil *vils)
@@ -99,11 +106,14 @@ void move_villians(vil *vils)
 
 void *p1_function(void *data)
 {
+	static int retval = 999;
 	vil *vils;
 	vils = ((vil *)data); // F 구조체배열 받아오기
 
 	while (1)
 	{
+		if(crash_flag==1)
+			pthread_exit((void*)&retval);
 		if (t < 6)
 		{
 			while (!draw_flag)
@@ -163,9 +173,12 @@ void *p1_function(void *data)
 	}
 }
 
-void *p2_function()
+void *p2_function(void *data)
 {
-	move_man();
+	vil *vils;
+	vils = ((vil *)data); // F 구조체배열 받아오기
+	move_man(vils);
+	
 }
 
 void init_keyboard()
@@ -244,11 +257,12 @@ int _kbhit()
 int x = START_X; //student's x position
 int y = START_Y; //student's y position
 
-void move_man() //call this function when create and move student
+void move_man(vil *vils) //call this function when create and move student
 {
 	int x_prev = x, y_prev = y;
 	int ch, i = 0;
 	init_keyboard();
+	static int retval = 999;
 
 	// initscr();
 	// clear();
@@ -259,10 +273,12 @@ void move_man() //call this function when create and move student
 	pthread_mutex_lock(&mutex);
 	move(x, y);
 	addstr("O");
-		pthread_mutex_unlock(&mutex);
+	pthread_mutex_unlock(&mutex);
 	while (1)
 	{
-			pthread_mutex_lock(&mutex);
+		if(crash_flag==1)
+			pthread_exit((void*)&retval);
+		pthread_mutex_lock(&mutex);
 		move(x, y);
 		addstr("O");
 		if (_kbhit())
@@ -278,14 +294,18 @@ void move_man() //call this function when create and move student
 			case 'w': //up
 				if (x != 12)
 				{
+					// if(crash_flag==1)
+					// 	break;
 					y_prev = y;
 					x_prev = x;
 					x--;
 				}
 				break;
 			case 's': //down
-				if(x != LINES-2)
+				if (x != LINES - 2)
 				{
+					// if(crash_flag==1)
+					// 	break;
 					y_prev = y;
 					x_prev = x;
 					x++;
@@ -294,14 +314,19 @@ void move_man() //call this function when create and move student
 			case 'a': //left
 				if (y != 1)
 				{
+					// if(crash_flag==1)
+					// 	break;
 					x_prev = x;
 					y_prev = y;
 					y--;
 				}
 				break;
 			case 'd': //right
-				if(y!=COLS-2)
-				{	x_prev = x;
+				if (y != COLS - 2)
+				{
+					// if(crash_flag==1)
+					// 	break;
+					x_prev = x;
 					y_prev = y;
 					y++;
 				}
@@ -311,10 +336,41 @@ void move_man() //call this function when create and move student
 		refresh();
 		move(x_prev, y_prev);
 		addstr(" ");
-				pthread_mutex_unlock(&mutex);
+		pthread_mutex_unlock(&mutex);
+		crash(vils);
 	}
 	// endwin();
 	close_keyboard();
+}
+
+// void *crash(void *data) thread의 crash
+// {
+// 	vil *vils;
+// 	vils = ((vil *)data); // F 구조체배열 받아오기
+// 	int i = 0;
+// 	// while (1)
+// 	// {
+// 		for (i = 0; i < vil_num; i++)
+// 			if (x == vils[i].x && y == vils[i].y)
+// 			{
+// 				crash_flag=1;
+// 					game_end();
+// 			}
+			
+// 	// }
+// }
+
+void crash(vil *vils)
+{
+	// vil *vils;
+	// vils = ((vil *)data); // F 구조체배열 받아오기
+	int i = 0;
+	// while (1)
+	// {
+		for (i = 0; i < vil_num; i++)
+			if (x == vils[i].x && y == vils[i].y)
+				crash_flag=1;
+	// }
 }
 
 int main()
@@ -330,9 +386,9 @@ int main()
 
 	int draw_flag = 0; //villain들이 draw된 횟수 (0이면 한번 그리고 1이면 그만 그려)
 
-	pthread_t p_thread[1];
+	pthread_t p_thread[2];
 
-	int thr_id[1];
+	int thr_id[2];
 
 	int thr_flag[1] = {
 		0,
@@ -391,7 +447,7 @@ int main()
 		exit(0);
 	}
 
-	 thr_id[1] = pthread_create(&p_thread[1], NULL, p2_function, NULL);
+	thr_id[1] = pthread_create(&p_thread[1], NULL, p2_function, (void *)&vils);
 
 	if (thr_id[1] < 0)
 	{
@@ -399,8 +455,18 @@ int main()
 		exit(0);
 	}
 
+	// thr_id[2] = pthread_create(&p_thread[2], NULL, crash, (void *)&vils);
+
+	// if (thr_id[2] < 0)
+	// {
+	// 	perror("thread create error : ");
+	// 	exit(0);
+	// }
+
 	while (1)
 	{
+		if(crash_flag==1)
+		break;
 		pthread_mutex_lock(&mutex);
 		move(7, 5);
 		if (t < 5)
@@ -420,13 +486,25 @@ int main()
 		else if (t < 60)
 			printw("| Stage %d | Time %3d | Boss Detected |", 4, t);
 		else
-			break;
+			 break;
+
 		refresh();
 		pthread_mutex_unlock(&mutex);
+
 		f = clock();
 		t = (int)(f - s) / 1000000;
 	}
-	//result print
+
+	game_end();
+
+	free(vils);
+}
+void game_end()
+{
+
+	initscr();   // reset curses
+	clear();	 // window clear
+	pthread_mutex_lock(&mutex);
 	move(9, 5);
 	if (t < 6)
 		printw("You got F grade, time : %d", t);
@@ -440,12 +518,17 @@ int main()
 		printw("You got A grade, Congratulations");
 
 	move(10, 5);
-	printw("When you press any key, you get out.");
-
+	printw("When you press 'q'key, you get out.");
+pthread_mutex_unlock(&mutex);
 	refresh();
-	getch();
+	while (1)
+	{
+		if (getch() == 'q')
+			break;
+	}
 	endwin(); // Restore normal terminal behavior
 	echo();
+	close_keyboard();
 
-	free(vils);
+	exit(0);
 }
